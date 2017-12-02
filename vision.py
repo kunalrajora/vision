@@ -11,32 +11,32 @@ import imutils
 kernel_size = 3
 
 # Canny Edge Detector
-low_threshold = 50
-high_threshold = 150
+low_threshold = 10
+high_threshold = 200
 
 # Region-of-interest vertices
-trap_bottom_width = 1.5 
-trap_top_width = 1 
-trap_height = 0.4 
+# We want a trapezoid shape, with bottom edge at the bottom of the image
+trap_bottom_width = 1.2  # width of bottom edge of trapezoid, expressed as percentage of image width
+trap_top_width = 0.07  # ditto for top edge of trapezoid
+trap_height = 0.4  # height of the trapezoid expressed as percentage of image height
 
 # Hough Transform
 rho = 2 # distance resolution in pixels of the Hough grid
 theta = 1 * np.pi/180 # angular resolution in radians of the Hough grid
-threshold = 15	
-min_line_length = 10
-max_line_gap = 20	
+threshold = 15	 # minimum number of votes (intersections in Hough grid cell)
+min_line_length = 10 #minimum number of pixels making up a line
+max_line_gap = 20	# maximum gap in pixels between connectable line segments
 
 
-def grayscale(img):
-	return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-	
-def canny(img, low_threshold, high_threshold):
-	return cv2.Canny(img, low_threshold, high_threshold)
-
-def gaussian_blur(img, kernel_size):
-	return cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
+# Helper functions
 
 def region_of_interest(img, vertices):
+	"""
+	Applies an image mask.
+	
+	Only keeps the region of the image defined by the polygon
+	formed from `vertices`. The rest of the image is set to black.
+	"""
 	#defining a blank mask to start with
 	mask = np.zeros_like(img)   
 	
@@ -55,7 +55,22 @@ def region_of_interest(img, vertices):
 	return masked_image
 
 def draw_lines(img, lines, color=[0, 144, 255], thickness=5):
+	"""
+	NOTE: this is the function you might want to use as a starting point once you want to 
+	average/extrapolate the line segments you detect to map out the full
+	extent of the lane (going from the result shown in raw-lines-example.mp4
+	to that shown in P1_example.mp4).  
 	
+	Think about things like separating line segments by their 
+	slope ((y2-y1)/(x2-x1)) to decide which segments are part of the left
+	line vs. the right line.  Then, you can average the position of each of 
+	the lines and extrapolate to the top and bottom of the lane.
+	
+	This function draws `lines` with `color` and `thickness`.	
+	Lines are drawn on the image inplace (mutates the image).
+	If you want to make the lines semi-transparent, think about combining
+	this function with the weighted_img() function below
+	"""
 	# In case of error, don't draw the line(s)
 	if lines is None:
 		return
@@ -64,26 +79,34 @@ def draw_lines(img, lines, color=[0, 144, 255], thickness=5):
 	draw_right = True
 	draw_left = True
 	
+	# Find slopes of all lines
+	# But only care about lines where abs(slope) > slope_threshold
 	slope_threshold = 0.5
 	slopes = []
 	new_lines = []
 	for line in lines:
 		x1, y1, x2, y2 = line[0]  # line = [[x1, y1, x2, y2]]
+		
 		# Calculate slope
-		if x2 - x1 == 0.: 
-			slope = 999. 
+		if x2 - x1 == 0.:  # corner case, avoiding division by 0
+			slope = 999.  # practically infinite slope
 		else:
 			slope = (y2 - y1) / (x2 - x1)
+			
+		# Filter lines based on slope
 		if abs(slope) > slope_threshold:
 			slopes.append(slope)
 			new_lines.append(line)
-	#devide left lines and right lines	
+		
 	lines = new_lines
+	
+	# Split lines into right_lines and left_lines, representing the right and left lane lines
+	# Right/left lane lines must have positive/negative slope, and be on the right/left half of the image
 	right_lines = []
 	left_lines = []
 	for i, line in enumerate(lines):
 		x1, y1, x2, y2 = line[0]
-		img_x_center = img.shape[1] / 2 
+		img_x_center = img.shape[1] / 2  # x coordinate of center of image
 		if slopes[i] > 0 and x1 > img_x_center and x2 > img_x_center:
 			right_lines.append(line)
 		elif slopes[i] < 0 and x1 < img_x_center and x2 < img_x_center:
@@ -130,7 +153,7 @@ def draw_lines(img, lines, color=[0, 144, 255], thickness=5):
 	
 	# Find 2 end points for right and left lines, used for drawing the line
 	# y = m*x + b --> x = (y - b)/m
-	y1 = img.shape[0]
+	y1 = img.shape[0] 
 	y2 = img.shape[0] * (1 - trap_height)
 	
 	right_x1 = (y1 - right_b) / right_m
@@ -213,47 +236,16 @@ def draw_lines(img, lines, color=[0, 144, 255], thickness=5):
 	
 def hough_lines(img, rho, theta, threshold, min_line_len, max_line_gap):
 	lines = cv2.HoughLinesP(img, rho, theta, threshold, np.array([]), minLineLength=min_line_len, maxLineGap=max_line_gap)
-	line_img = np.zeros((*img.shape, 3), dtype=np.uint8)
+	line_img = np.zeros((*img.shape, 3), dtype=np.uint8)  # 3-channel RGB image
 	draw_lines(line_img, lines)
 	return line_img
 
+# Python 3 has support for cool math symbols.
+
 def weighted_img(img, initial_img, al=0.8, bt=1., ga=0.):
 	return cv2.addWeighted(initial_img, al, img, bt, ga)
-
-def filter_colors(image):
-	white_threshold = 200 
-	lower_white = np.array([white_threshold, white_threshold, white_threshold])
-	upper_white = np.array([255, 255, 255])
-	white_mask = cv2.inRange(image, lower_white, upper_white)
-	white_image = cv2.bitwise_and(image, image, mask=white_mask)
-	hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-	lower_yellow = np.array([90,100,100])
-	upper_yellow = np.array([110,255,255])
-	yellow_mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
-	yellow_image = cv2.bitwise_and(image, image, mask=yellow_mask)
-	image2 = cv2.addWeighted(white_image, 1., yellow_image, 1., 0.)
-
-	return image2
-
-def annotate_image_array(image_in):
-	image = filter_colors(image_in)
-	gray = grayscale(image)
-	blur_gray = gaussian_blur(gray, kernel_size)
-	edges = canny(blur_gray, low_threshold, high_threshold)
-	imshape = image.shape
-	vertices = np.array([[\
-		((imshape[1] * (1 - trap_bottom_width)) // 2, imshape[0]),\
-		((imshape[1] * (1 - trap_top_width)) // 2, imshape[0] - imshape[0] * trap_height),\
-		(imshape[1] - (imshape[1] * (1 - trap_top_width)) // 2, imshape[0] - imshape[0] * trap_height),\
-		(imshape[1] - (imshape[1] * (1 - trap_bottom_width)) // 2, imshape[0])]]\
-		, dtype=np.int32)
-	masked_edges = region_of_interest(edges, vertices)
-	line_image = hough_lines(masked_edges, rho, theta, threshold, min_line_length, max_line_gap)
-	initial_image = image_in.astype('uint8')
-	annotated_image = weighted_img(line_image, initial_image)
 	
-	return annotated_image
-
+	
 def black(image):
 	resized = imutils.resize(image, width=300)
 	ratio = image.shape[0] / float(resized.shape[0])
@@ -261,27 +253,101 @@ def black(image):
 	edges = cv2.Canny(resized,100,200)
 	cnts = cv2.findContours(edges.copy(), cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE)
 	cnts = cnts[0] if imutils.is_cv2() else cnts[1]
+	#sd = ShapeDetector()
 
 	# loop over the contours
 	for c in cnts:
+		# compute the center of the contour, then detect the name of the
+		# shape using only the contour
 		M = cv2.moments(c)
 		if M["m00"]==0:
 			M["m00"]=1
 		cX = int((M["m10"] / M["m00"]) * ratio)
 		cY = int((M["m01"] //M["m00"]) * ratio)
 	
+
+    	# multiply the contour (x, y)-coordinates by the resize ratio,
+    	# then draw the contours and the name of the shape on the image
 		c = c.astype("float")
 		c *= ratio
 		c = c.astype("int")
 		cv2.drawContours(image, [c], -1, (0, 255, 0), 2)
+    	#show the output image
+    	#cv2.imshow("Image", image)
+    	#cv2.waitKey(0)
 		return image
 
-def annotate_image_array2(image_in):
+def annotate_image_array(image_in):
+	""" Given an image Numpy array, return the annotated image as a Numpy array """
+	# Only keep white and yellow pixels in the image, all other pixels become black
 	image = filter_colors(image_in)
+	#convert image
 	gray = black(image_in)
-	blur_gray = gaussian_blur(gray, kernel_size)
-	edges = canny(blur_gray, low_threshold, high_threshold)
+	
+	# Apply Gaussian smoothing
+	blur_gray = cv2.GaussianBlur(gray, (kernel_size, kernel_size), 0)
+	
+	# Apply Canny Edge Detector
+	
+	edges = cv2.Canny(blur_gray, low_threshold, high_threshold)
 
+	# Create masked edges using trapezoid-shaped region-of-interest
+	imshape = image.shape
+	vertices = np.array([[\
+		((imshape[1] * (1 - trap_bottom_width)) // 2, imshape[0]),\
+		((imshape[1] * (1 - trap_top_width)) // 2, imshape[0] - imshape[0] * trap_height),\
+		(imshape[1] - (imshape[1] * (1 - trap_top_width)) // 2, imshape[0] - imshape[0] * trap_height),\
+		(imshape[1] - (imshape[1] * (1 - trap_bottom_width)) // 2, imshape[0])]]\
+		, dtype=np.int32)
+	masked_edges = region_of_interest(edges, vertices)
+	
+	# Run Hough on edge detected image
+	line_image = hough_lines(masked_edges, rho, theta, threshold, min_line_length, max_line_gap)
+	cv2.imwrite("erg.jpg",line_image)
+	# Draw lane lines on the original image
+	initial_image = image_in.astype('uint8')
+	annotated_image = weighted_img(line_image, initial_image)
+	
+	return annotated_image
+
+def filter_colors(image):
+	"""
+	Filter the image to include only yellow and white pixels
+	"""
+	# Filter white pixels
+	white_threshold = 200 #130
+	lower_white = np.array([white_threshold, white_threshold, white_threshold])
+	upper_white = np.array([255, 255, 255])
+	white_mask = cv2.inRange(image, lower_white, upper_white)
+	white_image = cv2.bitwise_and(image, image, mask=white_mask)
+
+	# Filter yellow pixels
+	hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+	lower_yellow = np.array([90,100,100])
+	upper_yellow = np.array([110,255,255])
+	yellow_mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
+	yellow_image = cv2.bitwise_and(image, image, mask=yellow_mask)
+
+	# Combine the two above images
+	image2 = cv2.addWeighted(white_image, 1., yellow_image, 1., 0.)
+
+	return image2
+
+def annotate_image_array2(image_in):
+	""" Given an image Numpy array, return the annotated image as a Numpy array """
+	# Only keep white and yellow pixels in the image, all other pixels become black
+	image = filter_colors(image_in)
+	
+	# Read in and grayscale the image
+	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+	# Apply Gaussian smoothing
+	blur_gray = cv2.GaussianBlur(gray, (kernel_size, kernel_size), 0)
+
+	# Apply Canny Edge Detector
+	edges = cv2.Canny(blur_gray, low_threshold, high_threshold)
+
+	# Create masked edges using trapezoid-shaped region-of-interest
 	imshape = image.shape
 	vertices = np.array([[\
 		((imshape[1] * (1 - trap_bottom_width)) // 2, imshape[0]),\
@@ -291,23 +357,32 @@ def annotate_image_array2(image_in):
 		, dtype=np.int32)
 	masked_edges = region_of_interest(edges, vertices)
 
+	# Run Hough on edge detected image
 	line_image = hough_lines(masked_edges, rho, theta, threshold, min_line_length, max_line_gap)
 	
+	# Draw lane lines on the original image
 	initial_image = image_in.astype('uint8')
 	annotated_image = weighted_img(line_image, initial_image)
 	
 	return annotated_image
 
+
 def annotate_image(input_file, output_file):
-	annotated_image = annotate_image_array2(mpimg.imread(input_file))
+	""" Given input_file image, save annotated image to output_file """
+	annotated_image = annotate_image_array(mpimg.imread(input_file))
 	plt.imsave(output_file, annotated_image)
 
 def annotate_video(input_file, output_file):
+	""" Given input_file video, save annotated video to output_file """
 	video = VideoFileClip(input_file)
-	annotated_video = video.fl_image(annotate_image_array)
+	annotated_video = video.fl_image(annotate_image_array2)
 	annotated_video.write_videofile(output_file, audio=False)
 
+# End helper functions
 
+
+
+# Main script
 if __name__ == '__main__':
 	from optparse import OptionParser
 
