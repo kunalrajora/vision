@@ -1,6 +1,6 @@
 # Vision
 Rajasthan Hackathon 3.0
-[![Vision](https://i.ytimg.com/vi/6ZfuNTqbHE8/hqdefault.jpg?sqp=-oaymwEWCNIBEHZIWvKriqkDCQgBFQAAiEIYAQ==&rs=AOn4CLA4s2JqffhROrpwcKMqN0RpEc6HbQ)](https://www.youtube.com/watch?v=6ZfuNTqbHE8)
+[![Vision](https://github.com/kunalrajora/vision/blob/master/resource/Vis_logo.jpg?raw=true)](https://github.com/kunalrajora/vision/blob/master/resource/My%20Movie%203.mp4?raw=true)
 
 This is a project by team Vision. The goal is to detect lane lines on video using computer vision methods and show path on them in real time(OpenCV library).
 
@@ -21,13 +21,8 @@ Whole pipeline consist of following steps:
 
 # Camera calibration
 
-Camera calibration is very importaint step. For successful camera calibration it's good to use bigger count of calibration images with wider variety of callibration pattern positioning. I did calibration with CV2 library to implement gaussian blur, Canny edge detection, hough lines and much more detailing. More about camera calibration may be found [here](http://docs.opencv.org/3.0-beta/doc/py_tutorials/py_calib3d/py_calibration/py_calibration.html). This is example of calibration images with visible distortion and corresponding undistorted images.
-
-![camera calibration and undistortion] (https://github.com/parilo/carnd-advanced-lane-line-finding/blob/master/camera_calibration.png)
-
-Road distorted (left) and undistorted (rigth) image.
-
-![road image undistortion] (https://github.com/parilo/carnd-advanced-lane-line-finding/blob/master/undistorted_road_image.png)
+Camera calibration is very importaint step. For successful camera calibration it's good to use bigger count of calibration images with wider variety of callibration pattern positioning. I did calibration with CV2 library to implement gaussian blur, Canny edge detection, hough lines and much more detailing. More about camera calibration may be found [here](http://docs.opencv.org/3.0-beta/doc/py_tutorials/py_calib3d/py_calibration/py_calibration.html).
+![road example] (![morphology filtering example] (https://github.com/kunalrajora/vision/blob/master/resource/Gray&Gauss.png?raw=true)
 
 # Morphology filter
 
@@ -48,7 +43,7 @@ To be able to threshold lane lines more correclty I decided to do prefiltering w
 	
 ```
 
-![morphology filtering example] (https://github.com/parilo/carnd-advanced-lane-line-finding/blob/master/morphology-filter.png)
+![morphology filtering example] (https://github.com/kunalrajora/vision/blob/master/resource/Gray&Gauss.png?raw=true)
 
 # Identifying lane lines
 
@@ -81,7 +76,7 @@ After applying morphology filtering I find gradients on the image in different w
 
 Here is an example of each their combination.
 
- (https://github.com/parilo/carnd-advanced-lane-line-finding/blob/master/sobel_threshold.png)
+ (https://github.com/kunalrajora/vision/blob/master/resource/Canny.png?raw=true)
 
 # Trapezoidal view
 
@@ -115,7 +110,7 @@ def region_of_interest(img, vertices):
 	return masked_image
 ```
 
-![trapezoidal view perspective reprojection] (https://github.com/parilo/carnd-advanced-lane-line-finding/blob/master/birds_eye_view.png)
+![trapezoidal view perspective reprojection] (https://github.com/kunalrajora/vision/blob/master/resource/r_o_i.png?raw=true)
 
 # Drawing direction arrows on lane lines
 
