@@ -22,7 +22,6 @@ Whole pipeline consist of following steps:
 # Camera calibration
 
 Camera calibration is very importaint step. For successful camera calibration it's good to use bigger count of calibration images with wider variety of callibration pattern positioning. I did calibration with CV2 library to implement gaussian blur, Canny edge detection, hough lines and much more detailing. More about camera calibration may be found [here](http://docs.opencv.org/3.0-beta/doc/py_tutorials/py_calib3d/py_calibration/py_calibration.html).
-![road example] (![morphology filtering example] (https://github.com/kunalrajora/vision/blob/master/resource/Gray&Gauss.png?raw=true)
 
 # Morphology filter
 
@@ -120,7 +119,7 @@ I do it in three steps.
 1. Seperating left or right line using there slope.
 2. Calculating distance between these two lines.
 3. Drawing arrows at the center of the road for better understanding. 
-![Arrow drawing projection] (https://github.com/parilo/carnd-advanced-lane-line-finding/blob/master/polinomial_fitting_steps.png)
+![Arrow drawing projection] (https://github.com/kunalrajora/vision/blob/master/resource/draw.png?raw=true)
 
 1.Spliting lines
 ```
@@ -171,10 +170,9 @@ def draw_lines(img, lines, color=[0, 144, 255], thickness=5):
 	# Right lane lines
 	right_lines_x = []
 	right_lines_y = []
-	```
+```
 2. Calculating coordinates and lines distance
-    ```
-
+```python
 	for line in right_lines:
 		x1, y1, x2, y2 = line[0]
 		
@@ -227,10 +225,9 @@ def draw_lines(img, lines, color=[0, 144, 255], thickness=5):
 	right_x2 = int(right_x2)
 	left_x1 = int(left_x1)
 	left_x2 = int(left_x2)
-	```
-3. Drawing lines
 ```
-
+3. Drawing lines
+```python
 	# Draw the right and left lines on image
 	if draw_right and draw_left:
 		m_lower=(right_x1 +left_x1)//2
@@ -297,7 +294,7 @@ def draw_lines(img, lines, color=[0, 144, 255], thickness=5):
 # Example processed video frame image
 
 Here is an example of resulted video frame image with drawn lane lines, curvature and offset information
-(https://github.com/parilo/carnd-advanced-lane-line-finding/blob/master/drawn_lane_lines.png)
+(https://github.com/kunalrajora/vision/blob/master/resource/Vis_app.png?raw=true)
 
 # Conclusion
 
