@@ -6,8 +6,8 @@ This is a project by team Vision. The goal is to detect lane lines on video usin
 
 Directories:
 - All commented code can be found at vision.py python file.
-- Images folder contains augmentation on images 
-- Video folder contains augmentation on video
+- Images folder contains augmentation on images.
+- Video folder contains augmentation on video.
 
 # Overview
 
